@@ -60,9 +60,21 @@ app.post("/auth/signup", async (req, res) => {
         }
 
         const passwordHash = await bcrypt.hash(password, 10);
-        allUsers.push({ username, email, password: passwordHash })
-        console.log({ username, email, password: passwordHash });
-        const token = jwt.sign({ username, email }, JWT_SECRET, { expiresIn: '3m' });
+        const verificationString = uuid();
+        let isVerified = false;
+        try {
+            sendEmail({
+                from: "SENDER_GMAIL_ID",
+                to: email,
+                subject: "Please verify your email",
+                text: `Please click the below link http://localhost:3000/verify-user/${verificationString}`
+            })
+        } catch (error) {
+
+        }
+        console.log({ username, email, password: passwordHash, verificationString, isVerified });
+        allUsers.push({ username, email, password: passwordHash, verificationString, isVerified });
+        const token = jwt.sign({ username, email,verificationString, isVerified }, JWT_SECRET, { expiresIn: '10m' });
         console.log(token);
         jwt.verify(token, JWT_SECRET, (err, decodedToken) => {
             for (let fields in decodedToken) {
@@ -96,9 +108,45 @@ app.post("/auth/login", async (req, res) => {
     });
     console.log(foundUser.length);
     if(foundUser.length > 0) {
-        let {username} = foundUser;
-        const token = jwt.sign({ username, email }, JWT_SECRET, { expiresIn: '3m' });
-        return res.status(200).send({ msg: "Login successful", token });
+        let {username,verificationString,isVerified} = foundUser[0];
+        const token = jwt.sign({ username, email,verificationString, isVerified }, JWT_SECRET, { expiresIn: '3m' });
+        return res.status(200).send({ msg: "Login successful", token, username,verificationString,isVerified });
     }
     return res.status(401).send("Unauthorized");
 });
+
+app.put("/auth/verify-mail/", (req,res)=> {
+    const {verificationString} = req.body;
+
+    console.log('req body verify str='+ JSON.stringify(req.body));
+    let isUserFound = false;
+    let newUserToken = "";
+    console.log('recd verify str='+ verificationString);
+    for(let i=0;i<allUsers.length; i++) {
+        let user = allUsers[i];
+        console.log('system verify str='+ user.verificationString);
+        
+        if(user.verificationString === verificationString) {
+            user.isVerified = true;
+            let {username, email,verificationString, isVerified} = user;
+            newUserToken = jwt.sign({ username, email,verificationString, isVerified }, JWT_SECRET, { expiresIn: '3m' });
+            isUserFound = true;
+            break;
+        }
+    }
+    if(!isUserFound) {
+        return res.status(400).send({msg: "Invalid verificaionString"});
+    }
+    return res.status(200).send({msg: "User verified successfully", token:newUserToken});
+})
+
+import  {sendEmail}  from "./sendEmail.js";
+import { v4 as uuid } from "uuid";
+// app.get("/auth/send-mail", async(req,res) => {
+//     sendEmail({
+//         from: "SENDER_GMAIL_ID",
+//         to: "RECEIVER_GMAIL_ID",
+//         subject: "test email verify",
+//         text: "The body of mail goes here"
+//     })
+// })`

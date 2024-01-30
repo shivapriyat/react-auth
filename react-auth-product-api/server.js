@@ -26,6 +26,7 @@ app.use((req, res, next) => {
         if (err) {
             res.status(401).send(err);
         } else {
+            console.log("decoded value"+ decoded);
             next();
         }
     })

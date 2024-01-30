@@ -8,6 +8,8 @@ import { Products } from "./pages/Products";
 import { PrivateRoute } from "./auth/PrivateRoute";
 import { useAuth } from "./auth/useAuth";
 import { Navmenu } from "./pages/Navmenu";
+import { PleaseVerifyEmail } from "./pages/PleaseVerifyEmail";
+import { VerifyEmailLanding } from "./pages/VerifyEmailLanding";
 
 
 
@@ -18,6 +20,8 @@ rootElement.render(<BrowserRouter>
         <Route path="/" element={<App />} > </Route>
         <Route path="/login" element={<LoginPage />} > </Route>
         <Route path="/signup" element={<SignupPage />} > </Route>
+        <Route path="/please-verify-email" element={<PleaseVerifyEmail />} > </Route>
+        <Route path="/verify-user/:verificationString" element={<VerifyEmailLanding />} > </Route>
         <Route path="/products" element={<PrivateRoute><Products /></PrivateRoute>} > </Route>
     </Routes>
 </BrowserRouter>

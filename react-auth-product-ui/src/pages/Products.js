@@ -32,6 +32,7 @@ export const Products = () => {
         <div>
             <h2>Products {user?.email} </h2>
             <div>{error}</div>
+            {!user.isVerified ? <div className='notice'>Please verify your email to access all the contents</div> : null}
             {products && products.map(product => {
                 return (
                     <div key={product.id} style={{ border: "1px solid black", margin: "1rem" }}>

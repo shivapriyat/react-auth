@@ -11,6 +11,7 @@ export const useAuth = () => {
 
     const [token,setTokenInternal] = useState(localStorage.getItem("token") ? localStorage.getItem("token") : "");
     const setToken = (newToken)=> {
+        localStorage.removeItem("token");
         localStorage.setItem("token", newToken);
         setTokenInternal(newToken);
     }

@@ -16,7 +16,7 @@ export const SignupPage = () => {
             headers: {
                 "Content-Type": "application/json"
             },
-         body: JSON.stringify({email: emailValue, password: passwordValue, confirmPassword: confirmPasswordValue, username: username})}).then(res=> res.json()).then(resp=> {console.log(resp.token); setToken(resp.token); navigate("/")}).catch(e=> console.log(e))
+         body: JSON.stringify({email: emailValue, password: passwordValue, confirmPassword: confirmPasswordValue, username: username})}).then(res=> res.json()).then(resp=> {console.log(resp.token); setToken(resp.token); navigate("/please-verify-email")}).catch(e=> console.log(e))
     }
     
     return (
