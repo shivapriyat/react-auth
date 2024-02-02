@@ -150,3 +150,45 @@ import { v4 as uuid } from "uuid";
 //         text: "The body of mail goes here"
 //     })
 // })`
+
+app.put("/auth/forgot-password/:email", async(req,res) => {
+    const {email} = req.params;
+    let isUserFound = false;
+    for(let i=0;i<allUsers.length; i++) {
+        if(allUsers[i].email === email) {
+            let passwordResetCode = uuid();
+            allUsers[i].passwordResetCode = passwordResetCode;
+            try {
+                sendEmail({
+                    to: email,
+                    from : "SENDER_GMAIL_ID",
+                    subject: "Password reset",
+                    text: `To reset password please click the below link http://localhost:3000/reset-password/${passwordResetCode}`
+                })
+            } catch(err) {
+                console.log(err);
+                res.status(500).send({"msg": "password reset mail failed Contact admin"})
+            }
+        }
+    }
+    res.status(200).send();
+});
+
+app.put("/auth/:passwordResetCode/reset-password", async(req,res) => {
+    const {passwordResetCode} = req.params;
+    const {newPassword} = req.body;
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    let userFound = false;
+    for(let i=0;i<allUsers.length;i++) {
+        if(allUsers[i]?.passwordResetCode === passwordResetCode) {
+            allUsers[i].password = newPasswordHash;
+            delete allUsers[i].passwordResetCode;
+            userFound = true;
+            break;
+        }
+    }
+    if(!userFound) {
+        res.status(404).send();
+    }
+    res.status(200).send();
+})

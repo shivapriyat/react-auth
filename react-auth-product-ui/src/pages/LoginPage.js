@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../auth/useAuth';
 import { useNavigate } from "react-router-dom";
+import { ForgotPasswordPage } from './ForgotPasswordPage';
 
 export const LoginPage = () => {
     const [emailValue, setEmailValue] = useState("");
@@ -16,6 +17,10 @@ export const LoginPage = () => {
             },
          body: JSON.stringify({email: emailValue, password: passwordValue})}).then(res=> res.json()).then(resp=> {console.log(resp.token); setToken(resp.token); navigate("/")}).catch(e=> console.log(e))
     }
+
+    const handleForgetPwd = () => {
+        navigate("/forgot-password");
+    }
     
     return (
         <div>
@@ -28,6 +33,8 @@ export const LoginPage = () => {
             <button type="submit" onClick={(e)=>onLoginClicked(e)}>Login</button>
 
             <button type="submit" onClick={(e)=> navigate("/signup")}>New user ? then signup</button>
+
+            <button type="submit" onClick={(e) => handleForgetPwd()} >Forgot Password</button>
 
             </div>
        
