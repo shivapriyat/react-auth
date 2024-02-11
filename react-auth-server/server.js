@@ -191,4 +191,51 @@ app.put("/auth/:passwordResetCode/reset-password", async(req,res) => {
         res.status(404).send();
     }
     res.status(200).send();
-})
+});
+
+import { oauthClient } from "./oauthClient.js";
+app.get("/auth/google/url", async(req,res) => {
+    let url = oauthClient.generateAuthUrl({
+        access_type: "offline",
+        prompt: "consent",
+        scope:["https://www.googleapis.com/auth/userinfo.profile","https://www.googleapis.com/auth/userinfo.email"]
+    })
+    if(url) {
+        res.status(200).send({url})
+    }
+    else {
+        res.status(500);
+    }
+});
+
+app.get("/auth/google/callback", async(req,res) => { 
+const {code} = req.query;
+console.log(code);
+const {tokens} = await oauthClient.getToken(code);
+console.log("access_token= "+tokens.access_token);
+console.log("id_token= "+tokens.id_token);
+const googleUserInfoUrl = `https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${tokens.access_token}`;
+try {
+    let response = await fetch(googleUserInfoUrl,{headers: {
+        Authorization: `Bearer ${tokens.id_token}`
+    }});
+    let user = await response.json();
+    let foundUser; 
+    for(let i=0;i<allUsers.length;i++) {
+        if(user.email===allUsers[i].email) {
+            allUsers[i].isVerified = user.verified_email;
+            foundUser = allUsers[i];
+            break;
+        }
+    }
+    let username = foundUser?.username;
+    let isVerified = foundUser?.isVerified;
+    let email = user.email;
+    let token = jwt.sign({username,email,isVerified}, JWT_SECRET, {expiresIn: '3m'});
+    res.status(200).redirect("http://localhost:3000/login?token="+token);
+
+} catch (error) {
+    console.log(error);
+    res.status(500).send({err:error});
+}
+});
