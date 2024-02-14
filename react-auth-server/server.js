@@ -19,6 +19,7 @@ const allUsers = [];
 import bcrypt from "bcryptjs";
 import jwt, { decode } from "jsonwebtoken";
 const JWT_SECRET = "THESECRETKEYDECIDEDBYME";
+const PEPPER_STRING="THEPEPPERCONSTANTSTRING";
 app.post("/auth/signup", async (req, res) => {
     console.log(req.body);
     console.log(req.headers);
@@ -59,7 +60,9 @@ app.post("/auth/signup", async (req, res) => {
             })
         }
 
-        const passwordHash = await bcrypt.hash(password, 10);
+        const salt = uuid();
+        console.log(salt+password+PEPPER_STRING);
+        const passwordHash = await bcrypt.hash(salt+password+PEPPER_STRING, 10);
         const verificationString = uuid();
         let isVerified = false;
         try {
@@ -72,8 +75,8 @@ app.post("/auth/signup", async (req, res) => {
         } catch (error) {
 
         }
-        console.log({ username, email, password: passwordHash, verificationString, isVerified });
-        allUsers.push({ username, email, password: passwordHash, verificationString, isVerified });
+        console.log({ username, email, password: passwordHash, verificationString, isVerified, salt });
+        allUsers.push({ username, email, password: passwordHash, verificationString, isVerified, salt });
         const token = jwt.sign({ username, email,verificationString, isVerified }, JWT_SECRET, { expiresIn: '10m' });
         console.log(token);
         jwt.verify(token, JWT_SECRET, (err, decodedToken) => {
@@ -95,20 +98,24 @@ app.post("/auth/login", async (req, res) => {
         return res.status(400).send({
             err: "Required fields missing"
         })
-    }
+    }  
 
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    let foundUser = allUsers.filter( (user) => {
-        
-        if(user.email === email && bcrypt.compareSync(password,user.password)) {
-            return user;
+    let foundUser ;
+    for(let i=0;i<allUsers.length;i++) {
+        let user = allUsers[i];
+        if(user.email === email ) {
+            let salt = user.salt;
+            console.log(salt+password+PEPPER_STRING);
+            if(bcrypt.compareSync(salt+password+PEPPER_STRING,user.password)) {
+                console.log("login matched")
+                foundUser=user;
+            }
+           
         }
-        return null;
-    });
-    console.log(foundUser.length);
-    if(foundUser.length > 0) {
-        let {username,verificationString,isVerified} = foundUser[0];
+    }
+    console.log(foundUser);
+    if(foundUser) {
+        let {username,verificationString,isVerified} = foundUser;
         const token = jwt.sign({ username, email,verificationString, isVerified }, JWT_SECRET, { expiresIn: '3m' });
         return res.status(200).send({ msg: "Login successful", token, username,verificationString,isVerified });
     }
@@ -177,10 +184,10 @@ app.put("/auth/forgot-password/:email", async(req,res) => {
 app.put("/auth/:passwordResetCode/reset-password", async(req,res) => {
     const {passwordResetCode} = req.params;
     const {newPassword} = req.body;
-    const newPasswordHash = await bcrypt.hash(newPassword, 10);
     let userFound = false;
     for(let i=0;i<allUsers.length;i++) {
         if(allUsers[i]?.passwordResetCode === passwordResetCode) {
+            const newPasswordHash = await bcrypt.hash(allUsers[i].salt+newPassword+PEPPER_STRING, 10);
             allUsers[i].password = newPasswordHash;
             delete allUsers[i].passwordResetCode;
             userFound = true;
@@ -194,6 +201,7 @@ app.put("/auth/:passwordResetCode/reset-password", async(req,res) => {
 });
 
 import { oauthClient } from "./oauthClient.js";
+import { oslogin } from "googleapis/build/src/apis/oslogin/index.js";
 app.get("/auth/google/url", async(req,res) => {
     let url = oauthClient.generateAuthUrl({
         access_type: "offline",
